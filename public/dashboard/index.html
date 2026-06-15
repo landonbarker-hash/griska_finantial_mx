@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuentas por Cobrar – Análisis Estratégico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800&family=Lexend:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="chart.umd.min.js"></script>
+    <script>if(typeof Chart==='undefined'){document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');}</script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        @keyframes logo-glow {
+          0%, 100% {
+            filter: drop-shadow(0 0 1px rgba(142, 192, 244, 0.4)) drop-shadow(0 0 3px rgba(43, 130, 201, 0.2));
+            transform: scale(1);
+          }
+          50% {
+            filter: drop-shadow(0 0 6px rgba(142, 192, 244, 0.8)) drop-shadow(0 0 12px rgba(43, 130, 201, 0.4));
+            transform: scale(1.04);
+          }
+        }
+        .animate-logo-glow {
+          animation: logo-glow 5s ease-in-out infinite;
+          transform-origin: center;
+        }
+        .logo-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          padding: 8px 0;
+          margin-bottom: 36px;
+          width: 100%;
+        }
+        .logo-wrapper:hover {
+          transform: scale(1.05);
+        }
+        .logo-wrapper:hover .logo-text-griska {
+          color: #7dd3fc;
+        }
+        .logo-wrapper:hover .logo-trademark {
+          color: #38bdf8;
+        }
+        .logo-text-griska {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 800;
+          font-size: 26px;
+          color: #ffffff;
+          text-transform: lowercase;
+          letter-spacing: -0.5px;
+          display: flex;
+          align-items: flex-start;
+          transition: color 0.3s ease;
+        }
+        .logo-trademark {
+          font-size: 10px;
+          font-weight: 400;
+          vertical-align: super;
+          margin-left: 2px;
+          color: #a1a1aa;
+          transition: color 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo-wrapper" onclick="window.parent.postMessage('logout', '*')" title="Volver a Inicio">
+                <svg viewBox="0 0 24 24" class="animate-logo-glow" width="42" height="42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Upper leg: Light Blue -->
+                    <path d="M 2 12 L 14 0 L 22 0 L 10 12 Z" fill="#8ec0f4" />
+                    <!-- Lower-left leg: Medium Blue -->
+                    <path d="M 2 12 L 6 12 L 18 24 L 14 24 Z" fill="#2b82c9" />
+                    <!-- Lower-right leg: Dark Blue -->
+                    <path d="M 6 12 L 10 12 L 22 24 L 18 24 Z" fill="#0f62ac" />
+                </svg>
+                <span class="logo-text-griska">
+                    griska<span class="logo-trademark">®</span>
+                </span>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="overview" onclick="switchTab('overview',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span> Resumen Financiero
+                </button>
+                <button class="nav-btn" data-tab="dso" onclick="switchTab('dso',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> DSO & Cobranza
+                </button>
+                <button class="nav-btn" data-tab="arap" onclick="switchTab('arap',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg></span> AR & AP Hub
+                </button>
+                <button class="nav-btn" data-tab="forecast" onclick="switchTab('forecast',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Cash Flow & Forecast
+                </button>
+                <button class="nav-btn" data-tab="mexusa" onclick="switchTab('mexusa',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span> México-USA & FX
+                </button>
+
+                <button class="nav-btn" data-tab="cashapp" onclick="switchTab('cashapp',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Conciliación
+                </button>
+                <button class="nav-btn" data-tab="refunds" onclick="switchTab('refunds',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M16 3h5v5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 21H3v-5"/></svg></span> Reembolsos / RFT
+                </button>
+                <button class="nav-btn" data-tab="unapplied" onclick="switchTab('unapplied',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="m9.5 10.5 5 5"/><path d="m14.5 10.5-5 5"/></svg></span> No Aplicados PMT
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="report-date">Abr 2026</div>
+                <button class="add-client-btn" onclick="openAddClientModal()">
+                    <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Agregar Cliente
+                </button>
+                <button class="upload-real-btn" onclick="openUploadModal()">
+                    <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span> Subir Datos Reales
+                </button>
+                <button class="export-data-btn" onclick="exportCSV()">
+                    <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Exportar CSV
+                </button>
+                <button class="refresh-btn"
+                    style="border-color: var(--red); color: var(--red); margin-top: 10px; opacity: 0.6;"
+                    onclick="resetData()">↺ Restablecer Datos</button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <header class="topbar">
+                <div class="header-titles">
+                    <div class="super-title">Finance &amp; Collections · Griska</div>
+                    <h1 class="main-title"><span class="text-gradient">Intelligence</span> Dashboard <span class="title-live-badge">Analytics</span></h1>
+                    <p class="page-sub" id="page-title">Resumen Ejecutivo · Abril 2026</p>
+                </div>
+
+                <div class="team-members-wrapper">
+                    <div class="team-title">FINANCIAL TEAM MEMBERS ernesto</div>
+                    <div class="team-avatars">
+
+                        <div class="team-member" onclick="this.classList.toggle('expanded')">
+                            <div class="user-avatar team-avatar-large">
+                                <img src="profile.png" alt="Ernesto" class="profile-img-large">
+                            </div>
+                            <div class="team-member-info">
+                                <span class="team-member-name">Ernesto Jaramillo</span>
+                                <span class="team-member-role">Billing / AR Manager</span>
+                                <span class="active-status">● Active Now</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLang()">
+                        <span class="lang-icon">🌐</span> <span id="langText">ES</span>
+                    </button>
+                    <div class="health-badge" id="health-badge">● Cartera Saludable</div>
+                    <button class="logout-btn" onclick="window.parent.postMessage('logout', '*')" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.15)'" onmouseout="this.style.backgroundColor='transparent'" style="background: none; border: 1px solid #ef4444; color: #ef4444; padding: 9px 18px; border-radius: 20px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Exit
+                    </button>
+                </div>
+            </header>
+
+            <!-- OVERVIEW TAB -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h1>Welcome back!</h1>
+                        <p>Your portfolio is currently showing a <span class="text-positive">3.2% increase</span> in
+                            collections compared to last month. Keep it up!</p>
+                    </div>
+                    <div class="welcome-stats">
+                        <div class="mini-stat">
+                            <span class="stat-label">AI Insights</span>
+                            <span class="stat-value">High Collections Prob.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="overview-grid-container">
+                    <!-- LEFT COLUMN: Vertical KPI Stack -->
+                    <div class="overview-left-col">
+                        <div class="kpi-vertical-card accent-blue active" id="kpi-card-1" style="--progress: 78%;" onclick="selectKpiCard(1)">
+                            <div class="kpi-gauge-num"><span>1</span></div>
+                            <div class="kpi-card-info">
+                                <div class="kpi-card-label">Cartera Total (AR)</div>
+                                <div class="kpi-card-value" id="kpi-total">$4,287,350</div>
+                                <div class="kpi-card-delta">
+                                    <span class="delta-pct positive">↑ 3.2%</span>
+                                    <span class="delta-sep">|</span>
+                                    <span class="delta-extra">78% de la Meta</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kpi-vertical-card accent-purple" id="kpi-card-2" style="--progress: 83.3%;" onclick="selectKpiCard(2)">
+                            <div class="kpi-gauge-num"><span>2</span></div>
+                            <div class="kpi-card-info">
+                                <div class="kpi-card-label">Capital de Trabajo</div>
+                                <div class="kpi-card-value" id="kpi-working-capital">$1,250,000</div>
+                                <div class="kpi-card-delta">
+                                    <span class="delta-pct positive">+8.9%</span>
+                                    <span class="delta-sep">|</span>
+                                    <span class="delta-extra">83% del Objetivo</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kpi-vertical-card accent-green" id="kpi-card-3" style="--progress: 90%;" onclick="selectKpiCard(3)">
+                            <div class="kpi-gauge-num"><span>3</span></div>
+                            <div class="kpi-card-info">
+                                <div class="kpi-card-label">Flujo Neto MTD</div>
+                                <div class="kpi-card-value" id="kpi-cashflow-mtd">$450,000</div>
+                                <div class="kpi-card-delta">
+                                    <span class="delta-pct positive">+15.1%</span>
+                                    <span class="delta-sep">|</span>
+                                    <span class="delta-extra">90% Logrado</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kpi-vertical-card accent-orange" id="kpi-card-4" style="--progress: 57.5%;" onclick="selectKpiCard(4)">
+                            <div class="kpi-gauge-num"><span>4</span></div>
+                            <div class="kpi-card-info">
+                                <div class="kpi-card-label">Líneas de Financiamiento</div>
+                                <div class="kpi-card-value" id="kpi-credit-available">$1,150,000</div>
+                                <div class="kpi-card-delta">
+                                    <span class="delta-pct neutral">Bajo Riesgo</span>
+                                    <span class="delta-sep">|</span>
+                                    <span class="delta-extra">57% Disponible</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Main Trend Chart Card -->
+                    <div class="overview-chart-card">
+                        <div class="chart-card-header">
+                            <h3>Tendencia de Cobranza (Histórico DSO)</h3>
+                            <span class="chart-card-sub">Oct 2025 - Mar 2026</span>
+                        </div>
+                        <div class="chart-card-canvas" style="height:280px; position:relative;">
+                            <canvas id="overviewAgingChart" style="display:block; width:100%; height:100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM GRID: Three Columns -->
+                <div class="overview-bottom-grid">
+                    <!-- Active Assets Table -->
+                    <div class="bottom-card">
+                        <h3>Clientes Principales</h3>
+                        <table class="bottom-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Saldo Exposición</th>
+                                    <th>Estatus</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-weight:600; color:#fff;">Megasuper Retail</td>
+                                    <td>$743,000</td>
+                                    <td class="text-positive">Estratégico</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:600; color:#fff;">Industrias Omega</td>
+                                    <td>$621,500</td>
+                                    <td class="text-positive">Estratégico</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:600; color:#fff;">Constructora Alfa</td>
+                                    <td>$487,200</td>
+                                    <td class="text-negative" style="color:var(--red);">Morosidad (91d)</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:600; color:#fff;">Tech Solutions</td>
+                                    <td>$312,500</td>
+                                    <td class="text-negative" style="color:var(--orange);">Alerta (67d)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="bottom-card">
+                        <h3>Actividad de Cobros (Suspense)</h3>
+                        <div class="transactions-list">
+                            <div class="transaction-item">
+                                <div class="tx-icon"><span>🔄</span></div>
+                                <div class="tx-details">
+                                    <div class="tx-title">TRF-9921 (Omega)</div>
+                                    <div class="tx-desc">Monto: $45,000 / 19 días</div>
+                                </div>
+                                <div class="tx-date">Investigando</div>
+                            </div>
+                            <div class="transaction-item">
+                                <div class="tx-icon"><span>📂</span></div>
+                                <div class="tx-details">
+                                    <div class="tx-title">DEP-0023 (Desconocido)</div>
+                                    <div class="tx-desc">Monto: $12,500 / 17 días</div>
+                                </div>
+                                <div class="tx-date">Pendiente</div>
+                            </div>
+                            <div class="transaction-item">
+                                <div class="tx-icon"><span>⬇</span></div>
+                                <div class="tx-details">
+                                    <div class="tx-title">TRF-9812 (Tech Sol)</div>
+                                    <div class="tx-desc">Monto: $8,900 / 16 días</div>
+                                </div>
+                                <div class="tx-date">Contactado</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Indices / FX exposure -->
+                    <div class="bottom-card">
+                        <h3>Monedas & Exposición Cambiaria</h3>
+                        <div class="indices-list">
+                            <div class="index-item">
+                                <div class="index-title">Tipo de Cambio (MXN)</div>
+                                <div class="index-val">$17.50 MXN</div>
+                                <div class="sparkline-placeholder blue"></div>
+                            </div>
+                            <div class="index-item">
+                                <div class="index-title">Activos USD</div>
+                                <div class="index-val">$2.45M USD</div>
+                                <div class="sparkline-placeholder purple"></div>
+                            </div>
+                            <div class="index-item">
+                                <div class="index-title">Pasivos USD</div>
+                                <div class="index-val">$1.15M USD</div>
+                                <div class="sparkline-placeholder blue"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-dso" class="tab-content">
+                <div class="dso-grid">
+                    <div class="gauge-card">
+                        <div class="gauge-header">
+                            <h3>DSO Actual</h3>
+                            <span class="gauge-target-label">Objetivo: 36.3</span>
+                        </div>
+                        <canvas id="gaugeActual" width="160" height="110"></canvas>
+                        <div class="gauge-info">
+                            <div class="gauge-main">
+                                <span class="gauge-val" id="gaugeActualVal">38.4</span>
+                                <span class="gauge-label">dias</span>
+                            </div>
+                            <div class="gauge-status warning">⚠ Arriba del objetivo</div>
+                        </div>
+                    </div>
+                    <div class="gauge-card">
+                        <div class="gauge-header">
+                            <h3>DSO Mes Anterior</h3>
+                        </div>
+                        <canvas id="gaugePrev" width="160" height="110"></canvas>
+                        <div class="gauge-info">
+                            <div class="gauge-main">
+                                <span class="gauge-val" id="gaugePrevVal">36.1</span>
+                                <span class="gauge-label">dias</span>
+                            </div>
+                            <div class="gauge-status bad">↑ +2.3 Deterioro</div>
+                        </div>
+                    </div>
+                    <div class="gauge-card">
+                        <div class="gauge-header">
+                            <h3>Best Possible DSO</h3>
+                        </div>
+                        <canvas id="gaugeBest" width="160" height="110"></canvas>
+                        <div class="gauge-info">
+                            <div class="gauge-main">
+                                <span class="gauge-val" id="gaugeBestVal">24.0</span>
+                                <span class="gauge-label">dias</span>
+                            </div>
+                            <div class="gauge-status good">✓ Meta Saludable</div>
+                        </div>
+                    </div>
+                    <div class="gauge-card">
+                        <div class="gauge-header">
+                            <h3>Eficacia de Cobro (CEI)</h3>
+                        </div>
+                        <canvas id="gaugeCei" width="160" height="110"></canvas>
+                        <div class="gauge-info">
+                            <div class="gauge-main">
+                                <span class="gauge-val" id="gaugeCeiVal">93.4</span>
+                                <span class="gauge-label">%</span>
+                            </div>
+                            <div class="gauge-status good">✓ Excelente (Meta: 90%)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Tendencia DSO (6 Meses)</h3>
+                            <span class="chart-tag">Real vs Meta</span>
+                        </div>
+                        <canvas id="dsoTrendChart" height="180"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Composición del DSO</h3>
+                            <span class="chart-tag">Base vs Retraso</span>
+                        </div>
+                        <canvas id="dsoCompositionChart" height="180"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AR & AP HUB TAB -->
+            <div id="tab-arap" class="tab-content">
+                <!-- AGING BUCKETS -->
+                <div class="kpi-grid mini">
+                    <div class="kpi-card accent-green sm">
+                        <div class="kpi-label">Corriente</div>
+                        <div class="kpi-value sm" id="aging-current">$1,842,000</div>
+                        <div class="kpi-pct" id="aging-current-pct">43%</div>
+                    </div>
+                    <div class="kpi-card accent-blue sm">
+                        <div class="kpi-label">1–30 días</div>
+                        <div class="kpi-value sm" id="aging-30">$987,500</div>
+                        <div class="kpi-pct" id="aging-30-pct">23%</div>
+                    </div>
+                    <div class="kpi-card accent-yellow sm">
+                        <div class="kpi-label">31–60 días</div>
+                        <div class="kpi-value sm" id="aging-60">$643,200</div>
+                        <div class="kpi-pct" id="aging-60-pct">15%</div>
+                    </div>
+                    <div class="kpi-card accent-orange sm">
+                        <div class="kpi-label">61–90 días</div>
+                        <div class="kpi-value sm" id="aging-90">$471,350</div>
+                        <div class="kpi-pct" id="aging-90-pct">11%</div>
+                    </div>
+                    <div class="kpi-card accent-red sm">
+                        <div class="kpi-label">+90 días</div>
+                        <div class="kpi-value sm" id="aging-90plus">$343,300</div>
+                        <div class="kpi-pct" id="aging-90plus-pct">8%</div>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Aging Report – Desglose por Antigüedad</h3><span class="chart-tag">$ Monto</span>
+                        </div>
+                        <canvas id="agingBarChart" height="220"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Aging por Cliente (Top 8)</h3>
+                        </div>
+                        <canvas id="agingStackedChart" height="220"></canvas>
+                    </div>
+                </div>
+
+                <!-- RISK TABLE -->
+                <div class="section-header" style="margin-top:24px;">
+                    <h3>Clientes con Mayor Riesgo de Impago (AR Risk)</h3>
+                    <p>Clasificados por score de riesgo compuesto (historial + límite excedido + tendencia 6M)</p>
+                </div>
+                <div class="risk-table-wrapper" style="margin-bottom:24px;">
+                    <table class="risk-table" id="riskTable">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Saldo Vencido</th>
+                                <th>Días Vencido</th>
+                                <th>Límite Excedido</th>
+                                <th>Tendencia 6M</th>
+                                <th>Score Riesgo</th>
+                                <th>Clasificación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- SEGMENTATION MATRIX -->
+                <div class="section-header" style="margin-top:24px;">
+                    <h3>Matriz de Segmentación de Cartera</h3>
+                    <p>Clasificación estratégica: Valor del Cliente vs. Riesgo de Cobro</p>
+                </div>
+                <div class="matrix-grid">
+                    <div class="matrix-quad strategic">
+                        <div class="quad-title">⭐ Clientes Estratégicos</div>
+                        <div class="quad-sub">Alto Valor · Bajo Riesgo</div>
+                        <div id="seg-strategic" class="quad-clients"></div>
+                    </div>
+                    <div class="matrix-quad alert">
+                        <div class="quad-title">⚠ Clientes en Alerta</div>
+                        <div class="quad-sub">Alto Valor · Alto Riesgo</div>
+                        <div id="seg-alert" class="quad-clients"></div>
+                    </div>
+                    <div class="matrix-quad stable">
+                        <div class="quad-title">✅ Clientes Estables</div>
+                        <div class="quad-sub">Bajo Valor · Bajo Riesgo</div>
+                        <div id="seg-stable" class="quad-clients"></div>
+                    </div>
+                    <div class="matrix-quad low-high">
+                        <div class="quad-title">🔴 Bajo Valor / Alto Riesgo</div>
+                        <div class="quad-sub">Bajo Valor · Alto Riesgo</div>
+                        <div id="seg-lowrisk" class="quad-clients"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CASH FLOW & FORECAST TAB -->
+            <div id="tab-forecast" class="tab-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card accent-blue">
+                        <div class="kpi-label">Proyección de Entradas (30 días)</div>
+                        <div class="kpi-value" id="proj-total">$2,104,500</div>
+                        <div class="kpi-delta positive">↑ Confianza: 78%</div>
+                    </div>
+                    <div class="kpi-card accent-green">
+                        <div class="kpi-label">Cobros Probables (Prob. ≥75%)</div>
+                        <div class="kpi-value" id="proj-probable">$1,643,510</div>
+                        <div class="kpi-delta positive">Prob. alta</div>
+                    </div>
+                    <div class="kpi-card accent-orange">
+                        <div class="kpi-label">Cobros Posibles (Prob. 40-74%)</div>
+                        <div class="kpi-value" id="proj-possible">$460,990</div>
+                        <div class="kpi-delta neutral">Prob. media</div>
+                    </div>
+                    <div class="kpi-card accent-red">
+                        <div class="kpi-label">En Riesgo de Incumplimiento</div>
+                        <div class="kpi-value" id="proj-risk">$182,840</div>
+                        <div class="kpi-delta negative">Prob. &lt;40%</div>
+                    </div>
+                </div>
+                <div class="chart-card full-width">
+                    <div class="chart-header">
+                        <h3>Forecast de Flujo de Efectivo – Próximos 30 Días (Entradas vs Salidas)</h3>
+                    </div>
+                    <canvas id="projectionChart" height="160"></canvas>
+                </div>
+                <div class="chart-card full-width">
+                    <div class="chart-header">
+                        <h3>Calendario de Vencimientos por Cliente</h3>
+                    </div>
+                    <div id="projectionTable" class="proj-table-cont"></div>
+                </div>
+            </div>
+
+            <!-- MEXICO-USA & FX TAB -->
+            <div id="tab-mexusa" class="tab-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card accent-blue">
+                        <div class="kpi-label">Tipo de Cambio USD/MXN</div>
+                        <div class="kpi-value" id="fx-rate">$17.50</div>
+                        <div class="kpi-delta positive">Estable vs ayer</div>
+                    </div>
+                    <div class="kpi-card accent-purple">
+                        <div class="kpi-label">Exposición Neta USD (Griska USA)</div>
+                        <div class="kpi-value" id="fx-net-exposure">$1,300,000</div>
+                        <div class="kpi-delta negative">Activos: $2.45M | Pasivos: $1.15M</div>
+                    </div>
+                    <div class="kpi-card accent-green">
+                        <div class="kpi-label">Coberturas Cambiarias (Hedges)</div>
+                        <div class="kpi-value" id="fx-hedges">$500,000</div>
+                        <div class="kpi-delta positive">Forwards Activos (38% cubierto)</div>
+                    </div>
+                    <div class="kpi-card accent-orange">
+                        <div class="kpi-label">Facturación Sin Errores</div>
+                        <div class="kpi-value" id="fx-billing-errors">0.85%</div>
+                        <div class="kpi-delta negative" id="fx-billing-errors-delta">Objetivo: &lt;0.50%</div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card wide">
+                        <div class="chart-header">
+                            <h3>Evolución del Tipo de Cambio USD/MXN (6 Meses)</h3>
+                        </div>
+                        <canvas id="fxRateHistoryChart" height="180"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Composición de Exposición Cambiaria</h3>
+                        </div>
+                        <canvas id="fxExposureChart" height="180"></canvas>
+                    </div>
+                </div>
+
+                <!-- LOGISTICS DETAILS -->
+                <div class="section-header" style="margin-top:24px;">
+                    <h3>Desempeño Operativo Internacional & Logística</h3>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card accent-blue" style="background: rgba(30, 41, 59, 0.4);">
+                        <div class="kpi-label">TEUs / Despachos YTD</div>
+                        <div class="kpi-value">2,450</div>
+                        <div class="kpi-delta positive">↑ 12% vs año anterior</div>
+                    </div>
+                    <div class="kpi-card accent-green" style="background: rgba(30, 41, 59, 0.4);">
+                        <div class="kpi-label">Ingresos por Fletes YTD</div>
+                        <div class="kpi-value">$5,420,000</div>
+                        <div class="kpi-delta positive">↑ 18.5% YoY</div>
+                    </div>
+                    <div class="kpi-card accent-purple" style="background: rgba(30, 41, 59, 0.4);">
+                        <div class="kpi-label">Días de Tránsito Promedio</div>
+                        <div class="kpi-value">14.2 días</div>
+                        <div class="kpi-delta positive">↓ 1.4 días (Eficiencia)</div>
+                    </div>
+                    <div class="kpi-card accent-red" style="background: rgba(30, 41, 59, 0.4);">
+                        <div class="kpi-label">Incidencias en Aduanas</div>
+                        <div class="kpi-value">3</div>
+                        <div class="kpi-delta positive">↓ 50% vs mes anterior</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- CASH APPLICATIONS TAB -->
+            <div id="tab-cashapp" class="tab-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card accent-purple clickable" id="ca-card-unapplied"
+                        onclick="filterCashApp('unapplied')">
+                        <div class="kpi-label">Unapplied Cash</div>
+                        <div class="kpi-value" id="ca-unapplied">$-</div>
+                        <div class="kpi-delta neutral">Pendiente de aplicar</div>
+                    </div>
+                    <div class="kpi-card accent-orange clickable" id="ca-card-suspense"
+                        onclick="filterCashApp('suspense')">
+                        <div class="kpi-label">Suspense Account</div>
+                        <div class="kpi-value" id="ca-suspense">$-</div>
+                        <div class="kpi-delta negative">Partidas sin identificar</div>
+                    </div>
+                    <div class="kpi-card accent-green sm">
+                        <div class="kpi-label">Auto-Match Rate</div>
+                        <div class="kpi-value" id="ca-automatch">-%</div>
+                        <div class="kpi-delta positive">Eficiencia del sistema</div>
+                    </div>
+                    <div class="kpi-card accent-red sm">
+                        <div class="kpi-label">Pending Refunds</div>
+                        <div class="kpi-value" id="ca-refunds">$-</div>
+                        <div class="kpi-delta negative">Por procesar</div>
+                    </div>
+                </div>
+
+                <!-- ALGORITHMIC INSIGHTS -->
+                <div class="insights-box"
+                    style="background: rgba(85, 110, 230, 0.1); border-left: 4px solid var(--blue); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3
+                        style="color: var(--blue); margin-top:0; margin-bottom: 15px; font-size: 20px; font-weight: 800; display: flex; align-items: center;">
+                        <span style="margin-right: 12px; font-size: 26px;">💡</span> Análisis Inteligente de Cash
+                        Applications
+                    </h3>
+                    <ul id="ca-insights-list"
+                        style="margin: 0; padding-left: 20px; color: var(--text); font-size: 18px; line-height: 2.0;">
+                        <li>Calculando insights...</li>
+                    </ul>
+                </div>
+
+                <div class="charts-row" style="grid-template-columns: 1fr;">
+                    <div class="chart-card" style="padding: 20px 24px 24px; max-height: none; height: auto;">
+                        <div class="chart-header" style="margin-bottom: 4px;">
+                            <h3>Comparativa Interanual de Efectivo Aplicado</h3>
+                            <span class="chart-tag">2026 vs 2025</span>
+                        </div>
+
+                        <!-- KPI Summary Pills -->
+                        <div id="caCompKpis"
+                            style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; margin-top:6px;">
+                            <div class="comp-kpi-pill">
+                                <span class="comp-kpi-label">Total Aplicado 2026 YTD</span>
+                                <span class="comp-kpi-val" id="compTotal2026" style="color:#3b82f6;">—</span>
+                            </div>
+                            <div class="comp-kpi-pill">
+                                <span class="comp-kpi-label">Total Aplicado 2025 YTD</span>
+                                <span class="comp-kpi-val" id="compTotal2025"
+                                    style="color:rgba(255,255,255,0.4);">—</span>
+                            </div>
+                            <div class="comp-kpi-pill">
+                                <span class="comp-kpi-label">Crecimiento YoY</span>
+                                <span class="comp-kpi-val" id="compGrowth" style="color:#10b981;">—</span>
+                            </div>
+                            <div class="comp-kpi-pill">
+                                <span class="comp-kpi-label">Mejor Mes (2026)</span>
+                                <span class="comp-kpi-val" id="compBestMonth" style="color:#f59e0b;">—</span>
+                            </div>
+                        </div>
+
+                        <div class="comp-chart-wrap">
+                            <canvas id="caComparisonChart"></canvas>
+                        </div>
+
+                        <!-- Month-by-month delta badges -->
+                        <div id="caCompDeltaRow"
+                            style="display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; justify-content:center;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Aplicación Automática vs Manual</h3>
+                            <span class="chart-tag">Últimos 6 Meses</span>
+                        </div>
+                        <canvas id="caMatchChart" height="220"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Tendencia de Refunds</h3>
+                            <span class="chart-tag">Últimos 6 Meses</span>
+                        </div>
+                        <canvas id="caRefundTrendChart" height="220"></canvas>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Antigüedad de Unapplied Cash</h3>
+                        </div>
+                        <canvas id="caAgingChart" height="200"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Composición de Partidas Sin Identificar (Suspense)</h3>
+                            <span class="chart-tag">% por Origen</span>
+                        </div>
+                        <canvas id="caSuspenseChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- NOVEDAD: Nueva Tabla de Partidas -->
+                <div class="section-header" style="margin-top: 24px;">
+                    <h3 id="ca-table-title">Top Partidas Pendientes de Aplicar</h3>
+                    <p>Detalle de depósitos recibidos que no han podido ser conciliados contra facturas.</p>
+                </div>
+                <div class="risk-table-wrapper" style="margin-bottom: 24px;">
+                    <table class="risk-table" id="caTable">
+                        <thead>
+                            <tr>
+                                <th>Referencia / Banco</th>
+                                <th>Monto</th>
+                                <th>Fecha de Depósito</th>
+                                <th>Días sin aplicar</th>
+                                <th>Posible Origen</th>
+                                <th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caTableBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- REFUNDS TAB -->
+            <div id="tab-refunds" class="tab-content">
+                <!-- PREMIUM KPI GRID -->
+                <div class="kpi-grid">
+                    <!-- Consolidado USD -->
+                    <div class="kpi-card accent-purple">
+                        <div class="kpi-label">Total Reembolsos (USD Eq.)</div>
+                        <div class="kpi-value" id="refCompTotalActual">—</div>
+                        <div class="kpi-trend" id="refCompTotalActualSub">Cargando desglose...</div>
+                        <div class="kpi-icon-bg">💸</div>
+                    </div>
+                    <!-- Solicitudes Abiertas -->
+                    <div class="kpi-card accent-blue">
+                        <div class="kpi-label">Solicitudes Abiertas</div>
+                        <div class="kpi-value" id="refTotalCount">0</div>
+                        <div class="kpi-trend">Pendientes de Validación</div>
+                        <div class="kpi-icon-bg">📋</div>
+                    </div>
+                    <!-- Crecimiento LfL -->
+                    <div class="kpi-card accent-green" id="refGrowthCard">
+                        <div class="kpi-label">Crecimiento LfL</div>
+                        <div class="kpi-value" id="refCompGrowth">—</div>
+                        <div class="kpi-trend" id="refGrowthTrend">vs Año Anterior</div>
+                        <div class="kpi-icon-bg">📈</div>
+                    </div>
+                    <!-- Mejor Mes -->
+                    <div class="kpi-card accent-orange">
+                        <div class="kpi-label">Mejor Mes (2026)</div>
+                        <div class="kpi-value" id="refCompBestMonth" style="font-size: 18px;">—</div>
+                        <div class="kpi-trend">Pico de Operación</div>
+                        <div class="kpi-icon-bg">🏆</div>
+                    </div>
+                </div>
+
+                <!-- NEW: ALGORITHMIC INSIGHTS FOR REFUNDS -->
+                <div class="insights-box"
+                    style="background: rgba(139, 92, 246, 0.08); border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; border-top: 1px solid rgba(139, 92, 246, 0.15); border-right: 1px solid rgba(139, 92, 246, 0.1); backdrop-filter: blur(8px);">
+                    <h3
+                        style="color: #a855f7; margin-top:0; margin-bottom: 20px; font-size: 20px; font-weight: 800; display: flex; align-items: center; text-transform: uppercase; letter-spacing: 1.2px;">
+                        <span style="margin-right: 15px; font-size: 28px;">✨</span> Análisis Inteligente de Refunds
+                    </h3>
+                    <ul id="ref-insights-list"
+                        style="margin: 0; padding-left: 22px; color: rgba(255,255,255,1); font-size: 18px; line-height: 2.0;">
+                        <li style="color: var(--text2);">Analizando patrones de reembolsos...</li>
+                    </ul>
+                </div>
+
+                <!-- DYNAMIC CHART SECTION -->
+                <div class="charts-row" style="grid-template-columns: 1fr; margin-bottom: 24px;">
+                    <div class="chart-card"
+                        style="padding: 24px; max-height: none; height: auto; border-top: 2px solid rgba(139, 92, 246, 0.3); background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(10px);">
+                        <div class="chart-header"
+                            style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin:0; font-size: 18px; letter-spacing: -0.5px; color: #fff;">Evolución de
+                                    Reembolsos por Moneda</h3>
+                                <p style="margin:4px 0 0; font-size: 13px; color: var(--text2);">Análisis de tendencias
+                                    · Últimos 6 meses móviles</p>
+                            </div>
+                            <div id="refCompDeltaRow" style="display:flex; gap:10px;"></div>
+                        </div>
+
+                        <div class="comp-chart-wrap" style="position: relative; height:400px; width: 100%;">
+                            <canvas id="refComparisonChart"></canvas>
+                        </div>
+
+                        <!-- NEW: Detailed Data Summary below chart -->
+                        <div id="refChartDetails"
+                            style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALISIS DE REFUNDS TABLE -->
+                <div class="section-header">
+                    <h3>Distribución y Segmentación</h3>
+                    <p>Análisis por subsidiaria y estado de validación.</p>
+                </div>
+                <div class="charts-row" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div class="chart-card" style="max-height: none; height: auto; background: rgba(15, 23, 42, 0.4);">
+                        <h3 class="chart-title">Por Subsidiaria</h3>
+                        <div class="chart-container" style="position: relative; height:220px; width: 100%;">
+                            <canvas id="refSubsidiaryChart"></canvas>
+                        </div>
+                        <div id="refSubsidiaryDetails"
+                            style="margin-top: 16px; display: grid; grid-template-columns: 1fr; gap: 8px;"></div>
+                    </div>
+                    <div class="chart-card" style="max-height: none; height: auto; background: rgba(15, 23, 42, 0.4);">
+                        <h3 class="chart-title">Por Estatus</h3>
+                        <div class="chart-container" style="position: relative; height:220px; width: 100%;">
+                            <canvas id="refStatusChart"></canvas>
+                        </div>
+                        <div id="refStatusDetails"
+                            style="margin-top: 16px; display: grid; grid-template-columns: 1fr; gap: 8px;"></div>
+                    </div>
+                </div>
+
+                <div class="section-header" style="margin-top: 32px;">
+                    <h3>Gestión de Solicitudes Individuales</h3>
+                    <p>Detalle de las partidas pendientes de validación y pago.</p>
+                </div>
+                <div class="risk-table-wrapper">
+                    <table class="risk-table" id="refundTable">
+                        <thead>
+                            <tr>
+                                <th>RFT - number</th>
+                                <th>Created</th>
+                                <th>Subsidiary</th>
+                                <th>Amount</th>
+                                <th>Currency</th>
+                                <th>Age</th>
+                                <th>Responsable</th>
+                                <th>Link</th>
+                                <th>Estatus</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="refundTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- UNAPPLIED PAYMENTS TAB -->
+            <div id="tab-unapplied" class="tab-content">
+                <div class="filter-bar" style="background: rgba(30, 41, 59, 0.5); padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; align-items: center; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text3);">Año:</label>
+                        <select id="ua-filter-year" onchange="handleUaFilterChange()" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-family: inherit;">
+                            <option value="ALL">Todos los años</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text3);">Mes:</label>
+                        <select id="ua-filter-month" onchange="handleUaFilterChange()" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-family: inherit;">
+                            <option value="ALL">Todos los meses</option>
+                            <option value="JANUARY">Enero</option>
+                            <option value="FEBRUARY">Febrero</option>
+                            <option value="MARCH">Marzo</option>
+                            <option value="APRIL">Abril</option>
+                            <option value="MAY" selected>Mayo</option>
+                            <option value="JUNE">Junio</option>
+                            <option value="JULY">Julio</option>
+                            <option value="AUGUST">Agosto</option>
+                            <option value="SEPTEMBER">Septiembre</option>
+                            <option value="OCTOBER">Octubre</option>
+                            <option value="NOVEMBER">Noviembre</option>
+                            <option value="DECEMBER">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text3);">Región:</label>
+                        <select id="ua-filter-region" onchange="handleUaFilterChange()" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-family: inherit;">
+                            <option value="ALL" selected>Todas las regiones</option>
+                            <option value="AMERICAS">Americas</option>
+                            <option value="APAC">APAC</option>
+                            <option value="EMEA">EMEA</option>
+                            <option value="SYSOMOS">Sysomos</option>
+                        </select>
+                    </div>
+                    <div id="ua-filter-info" style="font-size: 11px; color: var(--blue); font-weight: 600; margin-left: auto; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; margin-right: 20px;">
+                        Vista Activa: Mayo 2026<br>
+                        <span style="color: var(--text3); font-size: 9px; font-weight: 400;">*Valores normalizados en USD</span>
+                    </div>
+                    <div class="ua-actions" style="display: flex; gap: 10px;">
+                        <!-- Hidden Input for Excel Upload -->
+                        <input type="file" id="netsuiteInput" style="display:none" onchange="processXlsFile(this.files[0])" accept=".xls,.xlsx">
+                        
+                        <button onclick="document.getElementById('netsuiteInput').click()" class="action-btn" style="background: var(--blue); color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <span>☁</span> Subir NetSuite
+                        </button>
+                        <button onclick="downloadDetailedExcel()" class="action-btn" style="background: var(--green); color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <span>⇓</span> Bajar Reporte
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card accent-purple">
+                        <div class="kpi-label">Total Unapplied PMT</div>
+                        <div class="kpi-value" id="ua-total">$0</div>
+                        <div class="kpi-delta positive" id="ua-total-delta">↓ 0%</div>
+                        <div class="kpi-trend">Abr 26: <span id="ua-total-feb" style="color:#fff; font-weight:700;">$1,102,175</span></div>
+                    </div>
+                    <div class="kpi-card accent-blue">
+                        <div class="kpi-label">Americas</div>
+                        <div class="kpi-value" id="ua-americas">$0</div>
+                        <div class="kpi-delta positive" id="ua-americas-delta">↓ 0%</div>
+                        <div class="kpi-trend">Abr 26: <span id="ua-americas-feb" style="color:#fff; font-weight:700;">$470,457</span></div>
+                    </div>
+                    <div class="kpi-card accent-green">
+                        <div class="kpi-label">APAC</div>
+                        <div class="kpi-value" id="ua-apac">$0</div>
+                        <div class="kpi-delta positive" id="ua-apac-delta">↓ 0%</div>
+                        <div class="kpi-trend">Abr 26: <span id="ua-apac-feb" style="color:#fff; font-weight:700;">$35,845</span></div>
+                    </div>
+                    <div class="kpi-card accent-orange">
+                        <div class="kpi-label">EMEA</div>
+                        <div class="kpi-value" id="ua-emea">$0</div>
+                        <div class="kpi-delta positive" id="ua-emea-delta">↓ 0%</div>
+                        <div class="kpi-trend">Abr 26: <span id="ua-emea-feb" style="color:#fff; font-weight:700;">$0</span></div>
+                    </div>
+                    <div class="kpi-card accent-purple">
+                        <div class="kpi-label">Sysomos</div>
+                        <div class="kpi-value" id="ua-sysomos">$0</div>
+                        <div class="kpi-delta positive" id="ua-sysomos-delta">↓ 0%</div>
+                        <div class="kpi-trend">Abr 26: <span id="ua-sysomos-feb" style="color:#fff; font-weight:700;">$0</span></div>
+                    </div>
+                </div>
+
+                <!-- PIVOT SUMMARY TABLES -->
+                <div class="section-header" style="margin-top: 24px;">
+                    <h3>Resumen de Consolidación (Pivot Tables)</h3>
+                    <p>Comparativa MoM y desglose histórico por año y región.</p>
+                </div>
+                <div class="pivot-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <!-- Periodo Actual -->
+                    <div class="chart-card" style="height: auto; max-height: none;">
+                        <div class="chart-header">
+                            <h3 id="ua-comp-title-curr">as of Abril 2026</h3>
+                        </div>
+                        <div class="risk-table-wrapper" style="margin-top: 10px;">
+                            <table class="risk-table mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Regions</th>
+                                        <th>Moneda</th>
+                                        <th style="text-align: right;">'Amount Remaining</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ua-comp-table-curr">
+                                    <!-- Dynamic -->
+                                </tbody>
+                                <tfoot style="border-top: 2px solid var(--border);">
+                                    <tr style="background: rgba(46, 182, 185, 0.1); font-weight: 700;">
+                                        <td>Grand Total</td>
+                                        <td>USD</td>
+                                        <td id="ua-comp-total-curr" style="text-align: right; color: var(--blue);">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Periodo Anterior -->
+                    <div class="chart-card" style="height: auto; max-height: none;">
+                        <div class="chart-header">
+                            <h3 id="ua-comp-title-prev">as of Marzo 2026</h3>
+                        </div>
+                        <div class="risk-table-wrapper" style="margin-top: 10px;">
+                            <table class="risk-table mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Regions</th>
+                                        <th>Moneda</th>
+                                        <th style="text-align: right;">'Amount Remaining</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ua-comp-table-prev">
+                                    <!-- Dynamic -->
+                                </tbody>
+                                <tfoot style="border-top: 2px solid var(--border);">
+                                    <tr style="background: rgba(124, 58, 237, 0.1); font-weight: 700;">
+                                        <td>Grand Total</td>
+                                        <td>USD</td>
+                                        <td id="ua-comp-total-prev" style="text-align: right; color: var(--purple);">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW U/P DETAIL: 3-COLUMN PANEL -->
+                <div class="chart-card" style="height:auto; max-height:none; margin-bottom:24px; padding:0; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
+                    <div class="chart-header" style="padding:20px 24px; border-bottom:2px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.02);">
+                        <div>
+                            <h3 id="ua-detail-title" style="margin:0; font-size:16px; font-weight:800; letter-spacing:-0.3px;">Total Change details as of Abril 2026</h3>
+                            <p style="margin:4px 0 0; font-size:12px; color:var(--text3);">Pagos no aplicados nuevos del mes seleccionado · New U/P por Región</p>
+                        </div>
+                        <span class="chart-tag">New U/P</span>
+                    </div>
+                    <div id="ua-detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:0;">
+                        <!-- AMERICAS -->
+                        <div style="border-right:1px solid rgba(255,255,255,0.07);">
+                            <div style="background:rgba(59,130,246,0.18); padding:14px 16px; text-align:center; font-weight:900; font-size:15px; letter-spacing:2px; color:#93c5fd; border-bottom:2px solid rgba(59,130,246,0.3); text-transform:uppercase;">🌎 Americas</div>
+                            <div style="display:grid; grid-template-columns:96px 1fr auto; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <div style="padding:8px 12px; font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Fecha</div>
+                                <div style="padding:8px 12px; font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Cliente</div>
+                                <div style="padding:8px 14px; font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; text-align:right;">New U/P</div>
+                            </div>
+                            <div id="ua-detail-americas" style="min-height:220px; max-height:450px; overflow-y:auto; scrollbar-width:thin;"></div>
+                            <div style="padding:14px 16px; border-top:2px solid rgba(59,130,246,0.35); background:rgba(59,130,246,0.12); display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:15px; color:#93c5fd;">Total Americas</span>
+                                <span id="ua-detail-americas-total" style="color:#60a5fa; font-weight:900; font-size:18px;">$0.00</span>
+                            </div>
+                        </div>
+                        <!-- APAC -->
+                        <div style="border-right:1px solid rgba(255,255,255,0.07);">
+                            <div style="background:rgba(16,185,129,0.18); padding:14px 16px; text-align:center; font-weight:900; font-size:15px; letter-spacing:2px; color:#6ee7b7; border-bottom:2px solid rgba(16,185,129,0.3); text-transform:uppercase;">🌏 APAC</div>
+                            <div style="display:grid; grid-template-columns:106px 1fr auto; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Fecha</div>
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Cliente</div>
+                                <div style="padding:10px 14px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; text-align:right;">New U/P</div>
+                            </div>
+                            <div id="ua-detail-apac" style="min-height:220px; max-height:450px; overflow-y:auto; scrollbar-width:thin;"></div>
+                            <div style="padding:14px 16px; border-top:2px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.12); display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:15px; color:#6ee7b7;">Total APAC</span>
+                                <span id="ua-detail-apac-total" style="color:#34d399; font-weight:900; font-size:18px;">$0.00</span>
+                            </div>
+                        </div>
+                        <!-- EMEA -->
+                        <div>
+                            <div style="background:rgba(245,158,11,0.18); padding:14px 16px; text-align:center; font-weight:900; font-size:15px; letter-spacing:2px; color:#fcd34d; border-bottom:2px solid rgba(245,158,11,0.3); text-transform:uppercase;">🌍 EMEA</div>
+                            <div style="display:grid; grid-template-columns:106px 1fr auto; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Fecha</div>
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Cliente</div>
+                                <div style="padding:10px 14px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; text-align:right;">New U/P</div>
+                            </div>
+                            <div id="ua-detail-emea" style="min-height:220px; max-height:450px; overflow-y:auto; scrollbar-width:thin;"></div>
+                            <div style="padding:14px 16px; border-top:2px solid rgba(245,158,11,0.35); background:rgba(245,158,11,0.12); display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:15px; color:#fcd34d;">Total EMEA</span>
+                                <span id="ua-detail-emea-total" style="color:#fbbf24; font-weight:900; font-size:18px;">$0.00</span>
+                            </div>
+                        </div>
+                        <!-- SYSOMOS -->
+                        <div>
+                            <div style="background:rgba(139,92,246,0.18); padding:14px 16px; text-align:center; font-weight:900; font-size:15px; letter-spacing:2px; color:#c4b5fd; border-bottom:2px solid rgba(139,92,246,0.3); text-transform:uppercase;">📊 Sysomos</div>
+                            <div style="display:grid; grid-template-columns:106px 1fr auto; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Fecha</div>
+                                <div style="padding:10px 12px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Cliente</div>
+                                <div style="padding:10px 14px; font-size:13px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; text-align:right;">New U/P</div>
+                            </div>
+                            <div id="ua-detail-sysomos" style="min-height:220px; max-height:450px; overflow-y:auto; scrollbar-width:thin;"></div>
+                            <div style="padding:14px 16px; border-top:2px solid rgba(139,92,246,0.35); background:rgba(139,92,246,0.12); display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:15px; color:#c4b5fd;">Total Sysomos</span>
+                                <span id="ua-detail-sysomos-total" style="color:#a78bfa; font-weight:900; font-size:18px;">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALGORITHMIC INSIGHTS FOR UNAPPLIED PAYMENTS -->
+                <div class="insights-box"
+                    style="background: rgba(46, 182, 185, 0.1); border-left: 4px solid var(--blue); padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(46, 182, 185, 0.2);">
+                    <h3
+                        style="color: var(--blue); margin-top:0; margin-bottom: 16px; font-size: 20px; font-weight: 800; display: flex; align-items: center; text-transform: uppercase; letter-spacing: 1.2px;">
+                        <span style="margin-right: 15px; font-size: 28px;">🔬</span> Análisis Inteligente de Unapplied Payments
+                    </h3>
+                    <ul id="ua-insights-list"
+                        style="margin: 0; padding-left: 22px; color: #fff; font-size: 17px; line-height: 1.8;">
+                        <li style="color: var(--text2);">Generando análisis algorítmico...</li>
+                    </ul>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header" style="display: block;">
+                            <h3 style="margin-bottom: 4px;">Comparativa Regional (Abr vs Mar)</h3>
+                            <p style="color: var(--text3); font-size: 13px; margin: 0;">Flujo de reducción de fondos sin aplicar por región.</p>
+                        </div>
+                        <canvas id="uaRegionalChart" height="220" style="margin-top: 12px;"></canvas>
+                    </div>
+                    <div class="chart-card wide">
+                        <div class="chart-header" style="display: block;">
+                            <h3 style="margin-bottom: 4px;">Histórico de Unapplied Cash (2022-2026)</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <p style="color: var(--text3); font-size: 13px; margin: 0;">Evolución del capital retenido en los últimos 5 años.</p>
+                                <span class="chart-tag">Por Región</span>
+                            </div>
+                        </div>
+                        <canvas id="uaHistoryChart" height="220" style="margin-top: 12px;"></canvas>
+                        <div id="ua-history-summary" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- UPLOAD MODAL -->
+    <div id="uploadModal" class="modal-overlay" onclick="handleOverlayClick(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">📂 Subir Datos Reales</h2>
+                    <p class="modal-sub">CSV o JSON · El dashboard se actualizará automáticamente</p>
+                </div>
+                <button class="modal-close" onclick="closeUploadModal()">✕</button>
+            </div>
+
+            <!-- DROP ZONE -->
+            <div class="drop-zone" id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+                ondrop="handleDrop(event)" onclick="document.getElementById('fileInput').click()">
+                <div class="drop-icon">📄</div>
+                <p class="drop-text">Arrastra tu archivo aquí</p>
+                <p class="drop-sub">o haz <strong>clic</strong> para seleccionar</p>
+                <p class="drop-types">Formatos soportados: <strong>.csv</strong> · <strong>.json</strong></p>
+                <input type="file" id="fileInput" accept=".csv,.json" style="display:none"
+                    onchange="handleFileSelect(event)">
+            </div>
+
+            <!-- FORMAT GUIDE -->
+            <div class="format-tabs">
+                <button class="fmt-tab active" id="fmtTabCSV" onclick="showFmtTab('csv')">📋 Formato CSV</button>
+                <button class="fmt-tab" id="fmtTabJSON" onclick="showFmtTab('json')">{ } Formato JSON</button>
+            </div>
+            <div class="format-panel" id="fmtPanelCSV">
+                <pre class="code-preview">dso_actual,dso_prev,dso_best,dso_target,total_ar,collected
+38.4,36.1,24.0,36.3,4287350,1923100
+
+# Clientes (hoja separada o archivo separado)
+name,balance,overdue,limitExc,trend,score,seg
+Constructora Alfa,487200,91,34,up,91,alert
+Megasuper Retail,743000,12,0,down,18,strategic</pre>
+            </div>
+            <div class="format-panel" id="fmtPanelJSON" style="display:none">
+                <pre class="code-preview">{"dso":{"actual":38.4,"prev":36.1,"best":24.0,"target":36.3},
+"totalAR":4287350,"collected":1923100,
+"aging":{"current":1842000,"d30":987500,"d60":643200,"d90":471350,"d90p":343300},
+"clients":[
+  {"name":"Constructora Alfa","balance":487200,"overdue":91,
+   "limitExc":34,"trend":"up","score":91,"seg":"alert"}
+]}</pre>
+            </div>
+
+            <!-- STATUS -->
+            <div class="upload-status" id="uploadStatus" style="display:none"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeUploadModal()">Cancelar</button>
+                <button class="btn-load" id="btnLoad" onclick="document.getElementById('fileInput').click()" disabled>⬆
+                    Cargar Archivo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD CLIENT MODAL -->
+    <div id="addClientModal" class="modal-overlay" onclick="handleAddClientOverlayClick(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">➕ Agregar Nuevo Cliente</h2>
+                    <p class="modal-sub">Ingresa los datos del cliente para añadirlo al panel</p>
+                </div>
+                <button class="modal-close" type="button" onclick="closeAddClientModal()">✕</button>
+            </div>
+
+            <form id="addClientForm" onsubmit="handleAddClientSubmit(event)" class="form-grid">
+                <div class="form-group">
+                    <label>Nombre del Cliente</label>
+                    <input type="text" id="acName" required placeholder="Ej: Industrias XYZ">
+                </div>
+                <div class="form-group">
+                    <label>Saldo Total ($)</label>
+                    <input type="number" id="acBalance" required min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Días Vencido</label>
+                    <input type="number" id="acOverdue" required min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Límite Excedido (%)</label>
+                    <input type="number" id="acLimitExc" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Tendencia</label>
+                    <select id="acTrend">
+                        <option value="stable">Estable</option>
+                        <option value="up">Deteriorando</option>
+                        <option value="down">Mejorando</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Score Riesgo (0-100)</label>
+                    <input type="number" id="acScore" required min="0" max="100" placeholder="50">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Segmentación</label>
+                    <select id="acSeg">
+                        <option value="strategic">Estratégico (Alto Valor / Bajo Riesgo)</option>
+                        <option value="alert">Alerta (Alto Valor / Alto Riesgo)</option>
+                        <option value="stable">Estable (Bajo Valor / Bajo Riesgo)</option>
+                        <option value="lowrisk">Bajo Valor / Alto Riesgo</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions" style="grid-column: span 2; margin-top: 10px;">
+                    <button type="button" class="btn-cancel" onclick="closeAddClientModal()">Cancelar</button>
+                    <button type="submit" class="btn-load" style="opacity: 1;">✔ Añadir Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script src="data.js?v=5"></script>
+    <script src="script.js?v=5"></script>
+    <input type="file" id="netsuiteInput" style="display: none;" onchange="handleFileSelect(event)" accept=".xls,.xlsx">
+</body>
+
+</html>
