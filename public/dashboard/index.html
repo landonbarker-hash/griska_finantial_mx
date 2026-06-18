@@ -114,6 +114,9 @@
                 <button class="nav-btn" data-tab="unapplied" onclick="switchTab('unapplied',this)">
                     <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="m9.5 10.5 5 5"/><path d="m14.5 10.5-5 5"/></svg></span> No Aplicados PMT
                 </button>
+                <button class="nav-btn" data-tab="ventas" onclick="switchTab('ventas',this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M9 13v4a1 1 0 0 0 1 1h4"/></svg></span> Ventas
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="report-date">Abr 2026</div>
@@ -1141,6 +1144,138 @@
                 </div>
 
             </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- VENTAS TAB                                                 -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div id="tab-ventas" class="tab-content">
+
+                <!-- KPI ROW -->
+                <div class="kpi-grid" style="margin-bottom:24px;">
+                    <div class="kpi-card accent-teal">
+                        <div class="kpi-label">VENTAS TOTALES MTD</div>
+                        <div class="kpi-value" id="v-total-ventas">$0</div>
+                        <div class="kpi-delta positive" id="v-ventas-delta">↑ vs mes anterior</div>
+                    </div>
+                    <div class="kpi-card accent-blue">
+                        <div class="kpi-label">COBRANZA EFECTIVA</div>
+                        <div class="kpi-value" id="v-total-cobrado">$0</div>
+                        <div class="kpi-delta positive" id="v-cobrado-delta">% de recuperación</div>
+                    </div>
+                    <div class="kpi-card accent-purple">
+                        <div class="kpi-label">COMISIONES GENERADAS</div>
+                        <div class="kpi-value" id="v-total-comisiones">$0</div>
+                        <div class="kpi-delta neutral" id="v-comisiones-delta">Sobre cobranza real</div>
+                    </div>
+                    <div class="kpi-card accent-orange">
+                        <div class="kpi-label">% RECUPERACIÓN GLOBAL</div>
+                        <div class="kpi-value" id="v-pct-recuperacion">0%</div>
+                        <div class="kpi-delta" id="v-rec-delta">Meta: 85%</div>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW 1 -->
+                <div class="charts-row" style="margin-bottom:24px;">
+                    <!-- Top 10 vendedores por ventas -->
+                    <div class="chart-card wide">
+                        <div class="chart-header">
+                            <h3>🏆 Top 10 Vendedores — Ventas vs Cobranza</h3>
+                            <span class="chart-tag">Abril 2026</span>
+                        </div>
+                        <canvas id="ventasTopChart" height="240" style="margin-top:12px;"></canvas>
+                    </div>
+                    <!-- Distribución por zona -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>🗺️ Ventas por Zona</h3>
+                            <span class="chart-tag">Distribución</span>
+                        </div>
+                        <canvas id="ventasZonaChart" height="240" style="margin-top:12px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW 2 -->
+                <div class="charts-row" style="margin-bottom:24px;">
+                    <!-- Tendencia mensual -->
+                    <div class="chart-card wide">
+                        <div class="chart-header">
+                            <h3>📈 Tendencia Ventas vs Cobranza (6 meses)</h3>
+                            <span class="chart-tag">Nov 2025 – Abr 2026</span>
+                        </div>
+                        <canvas id="ventasTendenciaChart" height="220" style="margin-top:12px;"></canvas>
+                    </div>
+                    <!-- % comisión scatter -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>💰 Comisión vs Recuperación</h3>
+                            <span class="chart-tag">Por vendedor</span>
+                        </div>
+                        <canvas id="ventasComisionChart" height="220" style="margin-top:12px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- FILTROS -->
+                <div style="background:rgba(30,41,59,0.5);padding:14px 20px;border-radius:12px;margin-bottom:18px;display:flex;gap:16px;align-items:center;border:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;">
+                    <span style="color:var(--text2);font-size:13px;font-weight:600;">FILTRAR:</span>
+                    <select id="v-zona-filter" onchange="filterVentasTable()" style="background:#1e293b;color:var(--text1);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;">
+                        <option value="all">Todas las Zonas</option>
+                        <option value="Norte">Norte</option>
+                        <option value="Centro">Centro</option>
+                        <option value="Sur">Sur</option>
+                        <option value="CDMX">CDMX</option>
+                        <option value="Occidente">Occidente</option>
+                    </select>
+                    <select id="v-status-filter" onchange="filterVentasTable()" style="background:#1e293b;color:var(--text1);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;">
+                        <option value="all">Todos los Estatus</option>
+                        <option value="Verde">🟢 En Meta</option>
+                        <option value="Amarillo">🟡 En Riesgo</option>
+                        <option value="Rojo">🔴 Bajo Meta</option>
+                    </select>
+                    <input id="v-search" oninput="filterVentasTable()" placeholder="🔍 Buscar vendedor..." style="background:#1e293b;color:var(--text1);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 14px;font-size:13px;outline:none;min-width:200px;">
+                    <span id="v-count-label" style="color:var(--text3);font-size:12px;margin-left:auto;"></span>
+                </div>
+
+                <!-- TABLA VENDEDORES -->
+                <div class="chart-card" style="padding:0;overflow:hidden;">
+                    <div style="padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+                        <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text1);">📋 Detalle de Vendedores — 50 Representantes</h3>
+                        <button onclick="exportVentasCSV()" style="background:rgba(20,184,166,0.15);color:var(--teal);border:1px solid rgba(20,184,166,0.3);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar CSV</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead>
+                                <tr style="background:rgba(15,23,42,0.8);text-transform:uppercase;letter-spacing:.8px;font-size:11px;">
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:left;font-weight:700;">#</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:left;font-weight:700;">VENDEDOR</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:left;font-weight:700;">ZONA</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:right;font-weight:700;">VENTAS MES</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:right;font-weight:700;">COBRADO</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:right;font-weight:700;">% RECUP.</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:right;font-weight:700;">% COMISIÓN</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:right;font-weight:700;">COMISIÓN $</th>
+                                    <th style="padding:12px 16px;color:var(--text3);text-align:center;font-weight:700;">ESTATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ventasTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- INSIGHTS BOX -->
+                <div class="insights-box" style="margin-top:24px;">
+                    <h3 style="color:var(--teal);margin-top:0;margin-bottom:16px;font-size:18px;font-weight:800;display:flex;align-items:center;text-transform:uppercase;letter-spacing:1px;">
+                        <span style="margin-right:12px;font-size:24px;">🧠</span> Insights de Desempeño Comercial
+                    </h3>
+                    <ul id="ventas-insights-list" style="list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+            </div>
+            <!-- END VENTAS TAB -->
+
         </main>
     </div>
 

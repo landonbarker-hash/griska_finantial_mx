@@ -4046,3 +4046,252 @@ function downloadDetailedExcel() {
   XLSX.writeFile(wb, `Unapplied_Payments_Report_${month}_${year}.xlsx`);
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+//  VENTAS MODULE
+// ══════════════════════════════════════════════════════════════════════════
+
+const VENTAS_NOMBRES = [
+  "Alejandro Ramirez","Beatriz Morales","Carlos Fuentes","Diana Herrera","Eduardo Soto",
+  "Fernanda Castro","Gabriel Ortiz","Hilda Vega","Ignacio Rios","Jimena Lara",
+  "Kevin Mendoza","Laura Pena","Marco Salinas","Natalia Torres","Oscar Gutierrez",
+  "Paola Reyes","Quintin Alvarez","Rosa Dominguez","Samuel Vargas","Teresa Jimenez",
+  "Ulises Nunez","Valeria Flores","Walter Ibarra","Ximena Cruz","Yael Montes",
+  "Zaira Aguilar","Adrian Espinoza","Brenda Romo","Claudio Navarro","Delia Sandoval",
+  "Emilio Avila","Fabiola Leon","Gerardo Medina","Hortensia Paredes","Ivan Cervantes",
+  "Josefina Rueda","Karla Bautista","Leonardo Pacheco","Miriam Trejo","Norberto Gomez",
+  "Olga Estrada","Pablo Delgado","Quirina Acosta","Rodrigo Mena","Sofia Maldonado",
+  "Tomas Esquivel","Ursula Robles","Victor Cabrera","Wendy Alvarado","Zenaida Ponce"
+];
+
+const VENTAS_ZONAS = ["Norte","Centro","Sur","CDMX","Occidente"];
+
+function seededRand(seed) {
+  let x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+const VENDEDORES_DATA = VENTAS_NOMBRES.map(function(nombre, i) {
+  const seed = i * 7 + 13;
+  const ventas = Math.round((seededRand(seed) * 900000 + 100000) / 1000) * 1000;
+  const pctRecup = Math.round((seededRand(seed + 1) * 45 + 50) * 10) / 10;
+  const cobrado = Math.round(ventas * pctRecup / 100 / 1000) * 1000;
+  const zona = VENTAS_ZONAS[Math.floor(seededRand(seed + 2) * 5)];
+  const baseComision = 3;
+  const bonusComision = pctRecup >= 90 ? 2 : pctRecup >= 80 ? 1.5 : pctRecup >= 70 ? 1 : 0.5;
+  const pctComision = Math.round((baseComision + bonusComision * seededRand(seed + 3)) * 100) / 100;
+  const comision = Math.round(cobrado * pctComision / 100);
+  const estatus = pctRecup >= 80 ? "Verde" : pctRecup >= 65 ? "Amarillo" : "Rojo";
+  return { nombre: nombre, zona: zona, ventas: ventas, cobrado: cobrado, pctRecup: pctRecup, pctComision: pctComision, comision: comision, estatus: estatus };
+}).sort(function(a,b){ return b.ventas - a.ventas; });
+
+function fmtV(n) {
+  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
+  return "$" + n.toLocaleString();
+}
+
+var chartVentasTop = null, chartVentasZona = null, chartVentasTendencia = null, chartVentasComision = null;
+
+function initVentasTab() {
+  renderVentasKPIs();
+  renderVentasTable(VENDEDORES_DATA);
+  renderVentasInsights();
+  initVentasCharts();
+}
+
+function renderVentasKPIs() {
+  const totalVentas = VENDEDORES_DATA.reduce(function(s,v){ return s + v.ventas; }, 0);
+  const totalCobrado = VENDEDORES_DATA.reduce(function(s,v){ return s + v.cobrado; }, 0);
+  const totalComisiones = VENDEDORES_DATA.reduce(function(s,v){ return s + v.comision; }, 0);
+  const pctGlobal = Math.round(totalCobrado / totalVentas * 1000) / 10;
+  document.getElementById("v-total-ventas").textContent = fmtV(totalVentas);
+  document.getElementById("v-total-cobrado").textContent = fmtV(totalCobrado);
+  document.getElementById("v-total-comisiones").textContent = fmtV(totalComisiones);
+  document.getElementById("v-pct-recuperacion").textContent = pctGlobal + "%";
+  document.getElementById("v-ventas-delta").textContent = "8.4% vs Marzo 2026";
+  document.getElementById("v-cobrado-delta").textContent = pctGlobal + "% de recuperacion";
+  document.getElementById("v-comisiones-delta").textContent = "Promedio " + (totalComisiones / VENDEDORES_DATA.length / 1000).toFixed(1) + "K por vendedor";
+  var recDelta = document.getElementById("v-rec-delta");
+  recDelta.textContent = pctGlobal >= 85 ? "Meta alcanzada" : "Meta: 85% Brecha: " + (85 - pctGlobal).toFixed(1) + "%";
+  recDelta.className = "kpi-delta " + (pctGlobal >= 85 ? "positive" : "negative");
+}
+
+function renderVentasTable(data) {
+  var tbody = document.getElementById("ventasTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  data.forEach(function(v, idx) {
+    var statusColor = v.estatus === "Verde" ? "#10b981" : v.estatus === "Amarillo" ? "#f59e0b" : "#ef4444";
+    var statusEmoji = v.estatus === "Verde" ? "verde" : v.estatus === "Amarillo" ? "amarillo" : "rojo";
+    var statusDot = v.estatus === "Verde" ? "🟢" : v.estatus === "Amarillo" ? "🟡" : "🔴";
+    var barPct = Math.min(100, v.pctRecup);
+    var rowBg = idx % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent";
+    var tr = document.createElement("tr");
+    tr.style.cssText = "background:" + rowBg + ";border-bottom:1px solid rgba(255,255,255,0.04);transition:background .15s;";
+    tr.onmouseenter = function(){ this.style.background = "rgba(20,184,166,0.06)"; };
+    tr.onmouseleave = function(){ this.style.background = rowBg; };
+    tr.innerHTML = '<td style="padding:11px 16px;color:var(--text3);font-weight:700;">' + (idx+1) + '</td>'
+      + '<td style="padding:11px 16px;color:var(--text1);font-weight:600;">' + v.nombre + '</td>'
+      + '<td style="padding:11px 16px;"><span style="background:rgba(99,102,241,0.15);color:#818cf8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">' + v.zona + '</span></td>'
+      + '<td style="padding:11px 16px;color:var(--text1);text-align:right;font-weight:600;">' + fmtV(v.ventas) + '</td>'
+      + '<td style="padding:11px 16px;text-align:right;"><span style="color:#34d399;font-weight:700;">' + fmtV(v.cobrado) + '</span></td>'
+      + '<td style="padding:11px 16px;text-align:right;"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;"><div style="width:60px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;"><div style="width:' + barPct + '%;height:100%;background:' + statusColor + ';border-radius:3px;"></div></div><span style="color:' + statusColor + ';font-weight:700;min-width:42px;">' + v.pctRecup + '%</span></div></td>'
+      + '<td style="padding:11px 16px;color:#a78bfa;text-align:right;font-weight:700;">' + v.pctComision.toFixed(2) + '%</td>'
+      + '<td style="padding:11px 16px;color:#fbbf24;text-align:right;font-weight:700;">' + fmtV(v.comision) + '</td>'
+      + '<td style="padding:11px 16px;text-align:center;font-size:18px;">' + statusDot + '</td>';
+    tbody.appendChild(tr);
+  });
+  var lbl = document.getElementById("v-count-label");
+  if (lbl) lbl.textContent = "Mostrando " + data.length + " de 50 vendedores";
+}
+
+function filterVentasTable() {
+  var zona = document.getElementById("v-zona-filter").value;
+  var status = document.getElementById("v-status-filter").value;
+  var search = (document.getElementById("v-search").value || "").toLowerCase();
+  var filtered = VENDEDORES_DATA.filter(function(v) {
+    return (zona === "all" || v.zona === zona)
+      && (status === "all" || v.estatus === status)
+      && (!search || v.nombre.toLowerCase().indexOf(search) >= 0);
+  });
+  renderVentasTable(filtered);
+}
+
+function initVentasCharts() {
+  if (typeof Chart === "undefined") { setTimeout(initVentasCharts, 300); return; }
+
+  var top10 = VENDEDORES_DATA.slice(0, 10);
+  var ctxTop = document.getElementById("ventasTopChart");
+  if (ctxTop) {
+    if (chartVentasTop) chartVentasTop.destroy();
+    chartVentasTop = new Chart(ctxTop, {
+      type: "bar",
+      data: {
+        labels: top10.map(function(v){ return v.nombre.split(" ")[0]; }),
+        datasets: [
+          { label: "Ventas", data: top10.map(function(v){ return v.ventas; }), backgroundColor: "rgba(20,184,166,0.7)", borderColor: "rgba(20,184,166,1)", borderWidth: 1.5, borderRadius: 6 },
+          { label: "Cobrado", data: top10.map(function(v){ return v.cobrado; }), backgroundColor: "rgba(99,102,241,0.7)", borderColor: "rgba(99,102,241,1)", borderWidth: 1.5, borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } },
+        scales: { x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } }, y: { ticks: { color: "#64748b", callback: function(v){ return fmtV(v); } }, grid: { color: "rgba(255,255,255,0.06)" } } }
+      }
+    });
+  }
+
+  var zonaMap = {};
+  VENDEDORES_DATA.forEach(function(v){ zonaMap[v.zona] = (zonaMap[v.zona] || 0) + v.ventas; });
+  var ctxZona = document.getElementById("ventasZonaChart");
+  if (ctxZona) {
+    if (chartVentasZona) chartVentasZona.destroy();
+    var zonaTotal = Object.values(zonaMap).reduce(function(a,b){ return a+b; }, 0);
+    chartVentasZona = new Chart(ctxZona, {
+      type: "doughnut",
+      data: {
+        labels: Object.keys(zonaMap),
+        datasets: [{ data: Object.values(zonaMap), backgroundColor: ["rgba(20,184,166,0.8)","rgba(99,102,241,0.8)","rgba(245,158,11,0.8)","rgba(239,68,68,0.8)","rgba(167,139,250,0.8)"], borderWidth: 2, borderColor: "#0f172a" }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: "65%", plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", padding: 16, font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw) + " (" + (ctx.raw / zonaTotal * 100).toFixed(1) + "%)"; } } } } }
+    });
+  }
+
+  var meses = ["Nov","Dic","Ene","Feb","Mar","Abr"];
+  var ventasTrend = [21.4,23.8,19.2,25.1,27.3,31.2].map(function(v){ return v * 1e6; });
+  var cobradoTrend = [17.2,19.1,15.8,20.4,22.9,26.8].map(function(v){ return v * 1e6; });
+  var ctxTend = document.getElementById("ventasTendenciaChart");
+  if (ctxTend) {
+    if (chartVentasTendencia) chartVentasTendencia.destroy();
+    chartVentasTendencia = new Chart(ctxTend, {
+      type: "line",
+      data: {
+        labels: meses,
+        datasets: [
+          { label: "Ventas", data: ventasTrend, borderColor: "rgba(20,184,166,1)", backgroundColor: "rgba(20,184,166,0.1)", fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: "#14b8a6" },
+          { label: "Cobranza", data: cobradoTrend, borderColor: "rgba(99,102,241,1)", backgroundColor: "rgba(99,102,241,0.1)", fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: "#6366f1" }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } }, scales: { x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } }, y: { ticks: { color: "#64748b", callback: function(v){ return fmtV(v); } }, grid: { color: "rgba(255,255,255,0.06)" } } } }
+    });
+  }
+
+  var ctxCom = document.getElementById("ventasComisionChart");
+  if (ctxCom) {
+    if (chartVentasComision) chartVentasComision.destroy();
+    var scatterData = VENDEDORES_DATA.map(function(v){ return { x: v.pctRecup, y: v.pctComision, r: Math.max(4, Math.round(v.ventas / 80000)) }; });
+    chartVentasComision = new Chart(ctxCom, {
+      type: "bubble",
+      data: {
+        datasets: [{
+          label: "Vendedores",
+          data: scatterData,
+          backgroundColor: scatterData.map(function(d){ return d.x >= 80 ? "rgba(16,185,129,0.6)" : d.x >= 65 ? "rgba(245,158,11,0.6)" : "rgba(239,68,68,0.6)"; }),
+          borderColor: scatterData.map(function(d){ return d.x >= 80 ? "rgba(16,185,129,1)" : d.x >= 65 ? "rgba(245,158,11,1)" : "rgba(239,68,68,1)"; }),
+          borderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: "% Recuperacion", color: "#64748b" }, ticks: { color: "#64748b", callback: function(v){ return v + "%"; } }, grid: { color: "rgba(255,255,255,0.04)" }, min: 45, max: 100 },
+          y: { title: { display: true, text: "% Comision", color: "#64748b" }, ticks: { color: "#64748b", callback: function(v){ return v + "%"; } }, grid: { color: "rgba(255,255,255,0.06)" } }
+        }
+      }
+    });
+  }
+}
+
+function renderVentasInsights() {
+  var list = document.getElementById("ventas-insights-list");
+  if (!list) return;
+  var totalVentas = VENDEDORES_DATA.reduce(function(s,v){ return s+v.ventas; }, 0);
+  var totalCobrado = VENDEDORES_DATA.reduce(function(s,v){ return s+v.cobrado; }, 0);
+  var totalCom = VENDEDORES_DATA.reduce(function(s,v){ return s+v.comision; }, 0);
+  var enMeta = VENDEDORES_DATA.filter(function(v){ return v.estatus === "Verde"; }).length;
+  var enRiesgo = VENDEDORES_DATA.filter(function(v){ return v.estatus === "Amarillo"; }).length;
+  var bajometa = VENDEDORES_DATA.filter(function(v){ return v.estatus === "Rojo"; }).length;
+  var top = VENDEDORES_DATA[0];
+  var mejor = VENDEDORES_DATA.reduce(function(a,b){ return a.pctRecup > b.pctRecup ? a : b; });
+  var pctGlobal = (totalCobrado / totalVentas * 100).toFixed(1);
+  var items = [
+    { icon: "🥇", text: "<b>" + top.nombre + "</b> lidera en ventas con <b>" + fmtV(top.ventas) + "</b> y una recuperacion del <b>" + top.pctRecup + "%</b>." },
+    { icon: "⭐", text: "Mejor recuperacion: <b>" + mejor.nombre + "</b> con <b>" + mejor.pctRecup + "%</b> — comision de <b>" + fmtV(mejor.comision) + "</b>." },
+    { icon: "✅", text: "<b>" + enMeta + " vendedores</b> (" + (enMeta/50*100).toFixed(0) + "%) estan en meta con +80% de recuperacion." },
+    { icon: "⚠️", text: "<b>" + enRiesgo + " vendedores</b> en riesgo (65-80% recup) · <b>" + bajometa + "</b> bajo meta requieren atencion." },
+    { icon: "💰", text: "Total comisiones del mes: <b>" + fmtV(totalCom) + "</b> sobre cobranza efectiva de <b>" + fmtV(totalCobrado) + "</b>." },
+    { icon: "📊", text: "Recuperacion global: <b>" + pctGlobal + "%</b> — " + (parseFloat(pctGlobal) >= 85 ? "Meta alcanzada" : (85 - parseFloat(pctGlobal)).toFixed(1) + "% debajo de meta del 85%") + "." }
+  ];
+  list.innerHTML = items.map(function(i){ return '<li style="background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;"><span style="font-size:20px;">' + i.icon + '</span><span style="color:var(--text2);font-size:13px;line-height:1.6;">' + i.text + '</span></li>'; }).join("");
+}
+
+function exportVentasCSV() {
+  var headers = ["#","Vendedor","Zona","Ventas","Cobrado","% Recuperacion","% Comision","Comision $","Estatus"];
+  var rows = VENDEDORES_DATA.map(function(v,i){ return [i+1,v.nombre,v.zona,v.ventas,v.cobrado,v.pctRecup,v.pctComision,v.comision,v.estatus].join(","); });
+  var csv = [headers.join(",")].concat(rows).join("\n");
+  var blob = new Blob([csv], { type: "text/csv" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a"); a.href = url; a.download = "Ventas_Abril_2026.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Patch switchTab to init ventas on first visit
+var _origSwitchTabVentas = switchTab;
+switchTab = function(id, btn) {
+  _origSwitchTabVentas(id, btn);
+  if (id === "ventas") { setTimeout(initVentasTab, 80); }
+};
+
+// i18n
+if (typeof navLabelsEn !== "undefined") {
+  navLabelsEn.ventas = "Sales";
+  navLabelsEs.ventas = "Ventas";
+}
+if (typeof titlesEn !== "undefined") {
+  titlesEn.ventas = "Sales Dashboard";
+  titlesEs.ventas = "Dashboard de Ventas";
+  titles.ventas = "Ventas";
+}
+
