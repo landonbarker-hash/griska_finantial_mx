@@ -4176,8 +4176,32 @@ function initVentasCharts() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } },
-        scales: { x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } }, y: { ticks: { color: "#64748b", callback: function(v){ return fmtV(v); } }, grid: { color: "rgba(255,255,255,0.06)" } } }
+        plugins: { 
+          legend: { 
+            labels: { 
+              color: "#e2e8f0", 
+              font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            } 
+          }, 
+          tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } 
+        },
+        scales: { 
+          x: { 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.05)" } 
+          }, 
+          y: { 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+              callback: function(v){ return fmtV(v); } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.08)" } 
+          } 
+        }
       }
     });
   }
@@ -4194,7 +4218,26 @@ function initVentasCharts() {
         labels: Object.keys(zonaMap),
         datasets: [{ data: Object.values(zonaMap), backgroundColor: ["rgba(20,184,166,0.8)","rgba(99,102,241,0.8)","rgba(245,158,11,0.8)","rgba(239,68,68,0.8)","rgba(167,139,250,0.8)"], borderWidth: 2, borderColor: "#0f172a" }]
       },
-      options: { responsive: true, maintainAspectRatio: false, cutout: "65%", plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", padding: 16, font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw) + " (" + (ctx.raw / zonaTotal * 100).toFixed(1) + "%)"; } } } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        cutout: "65%", 
+        plugins: { 
+          legend: { 
+            position: "bottom", 
+            labels: { 
+              color: "#e2e8f0", 
+              padding: 16, 
+              font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            } 
+          }, 
+          tooltip: { 
+            callbacks: { 
+              label: function(ctx){ return " " + fmtV(ctx.raw) + " (" + (ctx.raw / zonaTotal * 100).toFixed(1) + "%)"; } 
+            } 
+          } 
+        } 
+      }
     });
   }
 
@@ -4213,7 +4256,36 @@ function initVentasCharts() {
           { label: "Cobranza", data: cobradoTrend, borderColor: "rgba(99,102,241,1)", backgroundColor: "rgba(99,102,241,0.1)", fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: "#6366f1" }
         ]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } }, tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } }, scales: { x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } }, y: { ticks: { color: "#64748b", callback: function(v){ return fmtV(v); } }, grid: { color: "rgba(255,255,255,0.06)" } } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { 
+            labels: { 
+              color: "#e2e8f0", 
+              font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            } 
+          }, 
+          tooltip: { callbacks: { label: function(ctx){ return " " + fmtV(ctx.raw); } } } 
+        }, 
+        scales: { 
+          x: { 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.05)" } 
+          }, 
+          y: { 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+              callback: function(v){ return fmtV(v); } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.08)" } 
+          } 
+        } 
+      }
     });
   }
 
@@ -4234,10 +4306,48 @@ function initVentasCharts() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var d = ctx.raw;
+                return " Recuperación: " + d.x + "% | Comisión: " + d.y + "%";
+              }
+            }
+          }
+        },
         scales: {
-          x: { title: { display: true, text: "% Recuperacion", color: "#64748b" }, ticks: { color: "#64748b", callback: function(v){ return v + "%"; } }, grid: { color: "rgba(255,255,255,0.04)" }, min: 45, max: 100 },
-          y: { title: { display: true, text: "% Comision", color: "#64748b" }, ticks: { color: "#64748b", callback: function(v){ return v + "%"; } }, grid: { color: "rgba(255,255,255,0.06)" } }
+          x: { 
+            title: { 
+              display: true, 
+              text: "% Recuperación", 
+              color: "#f1f5f9", 
+              font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            }, 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+              callback: function(v){ return v + "%"; } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.05)" }, 
+            min: 45, 
+            max: 100 
+          },
+          y: { 
+            title: { 
+              display: true, 
+              text: "% Comisión", 
+              color: "#f1f5f9", 
+              font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" } 
+            }, 
+            ticks: { 
+              color: "#e2e8f0", 
+              font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+              callback: function(v){ return v + "%"; } 
+            }, 
+            grid: { color: "rgba(255,255,255,0.08)" } 
+          }
         }
       }
     });
