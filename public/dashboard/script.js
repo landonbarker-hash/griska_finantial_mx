@@ -4091,13 +4091,14 @@ function fmtV(n) {
   return "$" + n.toLocaleString();
 }
 
-var chartVentasTop = null, chartVentasZona = null, chartVentasTendencia = null, chartVentasComision = null;
+var chartVentasTop = null, chartVentasZona = null, chartVentasTendencia = null, chartVentasComision = null, chartVentasPro = null;
 
 function initVentasTab() {
   renderVentasKPIs();
   renderVentasTable(VENDEDORES_DATA);
   renderVentasInsights();
   initVentasCharts();
+  initVentasAnalyzer();
 }
 
 function renderVentasKPIs() {
@@ -4375,6 +4376,294 @@ function renderVentasInsights() {
     { icon: "📊", text: "Recuperacion global: <b>" + pctGlobal + "%</b> — " + (parseFloat(pctGlobal) >= 85 ? "Meta alcanzada" : (85 - parseFloat(pctGlobal)).toFixed(1) + "% debajo de meta del 85%") + "." }
   ];
   list.innerHTML = items.map(function(i){ return '<li style="background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;"><span style="font-size:20px;">' + i.icon + '</span><span style="color:var(--text2);font-size:13px;line-height:1.6;">' + i.text + '</span></li>'; }).join("");
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  360° MULTIDIMENSIONAL SALES ANALYZER DATA & CHART LOGIC
+// ══════════════════════════════════════════════════════════════════════════
+
+const MESES_NOMBRES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const VENDEDORES_HISTORICO = [];
+
+// Seeded dataset generator for 2025 and 2026 monthly metrics
+VENDEDORES_DATA.forEach(function(v, idx) {
+  const baseSeed = idx * 11 + 47;
+  [2025, 2026].forEach(function(year) {
+    MESES_NOMBRES.forEach(function(monthName, mIdx) {
+      const seed = baseSeed + year * 3 + mIdx * 17;
+      
+      let seasonFactor = 1.0;
+      if (mIdx === 0) seasonFactor = 0.75;      // Jan
+      else if (mIdx === 1) seasonFactor = 0.8;   // Feb
+      else if (mIdx === 2) seasonFactor = 0.9;   // Mar
+      else if (mIdx === 3) seasonFactor = 1.0;   // Apr
+      else if (mIdx === 4) seasonFactor = 1.05;  // May
+      else if (mIdx === 5) seasonFactor = 1.1;   // Jun
+      else if (mIdx === 6) seasonFactor = 0.95;  // Jul
+      else if (mIdx === 7) seasonFactor = 0.9;   // Aug
+      else if (mIdx === 8) seasonFactor = 1.0;   // Sep
+      else if (mIdx === 9) seasonFactor = 1.05;  // Oct
+      else if (mIdx === 10) seasonFactor = 1.15; // Nov
+      else if (mIdx === 11) seasonFactor = 1.25; // Dec
+      
+      const yearFactor = year === 2025 ? 0.88 : 1.0;
+      const randVal = 0.85 + seededRand(seed) * 0.3;
+      const salesVal = Math.round((v.ventas * seasonFactor * yearFactor * randVal) / 1000) * 1000;
+      
+      const recDelta = seededRand(seed + 1) * 16 - 8;
+      const pctRecupVal = Math.max(40, Math.min(100, Math.round((v.pctRecup + recDelta) * 10) / 10));
+      
+      const cobradoVal = Math.round(salesVal * pctRecupVal / 100 / 1000) * 1000;
+      const comisionVal = Math.round(cobradoVal * v.pctComision / 100);
+      
+      VENDEDORES_HISTORICO.push({
+        nombre: v.nombre,
+        zona: v.zona,
+        year: year,
+        mesIdx: mIdx,
+        mes: monthName,
+        ventas: salesVal,
+        cobrado: cobradoVal,
+        pctRecup: pctRecupVal,
+        pctComision: v.pctComision,
+        comision: comisionVal
+      });
+    });
+  });
+});
+
+function initVentasAnalyzer() {
+  populateAnalyzerVendedores();
+}
+
+function populateAnalyzerVendedores() {
+  var region = document.getElementById("v-pro-region").value;
+  var sel = document.getElementById("v-pro-vendedor");
+  if (!sel) return;
+  
+  var prevVal = sel.value;
+  sel.innerHTML = '<option value="all">Todos los vendedores</option>';
+  
+  var filteredNames = VENDEDORES_DATA
+    .filter(function(v) { return region === "all" || v.zona === region; })
+    .map(function(v) { return v.nombre; })
+    .sort();
+    
+  filteredNames.forEach(function(name) {
+    var opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    if (name === prevVal) { opt.selected = true; }
+    sel.appendChild(opt);
+  });
+  
+  updateVentasProChart();
+}
+
+function updateVentasProChart() {
+  var yearVal = parseInt(document.getElementById("v-pro-year").value || "2026");
+  var monthVal = document.getElementById("v-pro-month").value; // "all" or index
+  var regionVal = document.getElementById("v-pro-region").value;
+  var vendedorVal = document.getElementById("v-pro-vendedor").value;
+  
+  // Filter base history
+  var baseFiltered = VENDEDORES_HISTORICO.filter(function(item) {
+    if (item.year !== yearVal) return false;
+    if (regionVal !== "all" && item.zona !== regionVal) return false;
+    if (vendedorVal !== "all" && item.nombre !== vendedorVal) return false;
+    return true;
+  });
+  
+  // Calculate Scorecards
+  var scorecardFiltered = baseFiltered;
+  if (monthVal !== "all") {
+    var mIdx = parseInt(monthVal);
+    scorecardFiltered = baseFiltered.filter(function(item) { return item.mesIdx === mIdx; });
+  }
+  
+  var totalVentas = scorecardFiltered.reduce(function(acc, item) { return acc + item.ventas; }, 0);
+  var totalCobrado = scorecardFiltered.reduce(function(acc, item) { return acc + item.cobrado; }, 0);
+  var totalComision = scorecardFiltered.reduce(function(acc, item) { return acc + item.comision; }, 0);
+  var recoveryPct = totalVentas > 0 ? (totalCobrado / totalVentas * 100) : 0;
+  
+  document.getElementById("v-pro-kpi-ventas").textContent = fmtV(totalVentas);
+  document.getElementById("v-pro-kpi-cobrado").textContent = fmtV(totalCobrado);
+  document.getElementById("v-pro-kpi-recup").textContent = recoveryPct.toFixed(1) + "%";
+  document.getElementById("v-pro-kpi-comision").textContent = fmtV(totalComision);
+
+  // Prepare chart variables
+  var labels = [];
+  var ventasData = [];
+  var cobradoData = [];
+  var recupData = [];
+  
+  var ctx = document.getElementById("ventasProChart");
+  if (!ctx) return;
+  
+  if (monthVal === "all") {
+    // 12-Month Trend (Ene - Dic)
+    labels = MESES_NOMBRES;
+    for (var m = 0; m < 12; m++) {
+      var mData = baseFiltered.filter(function(item) { return item.mesIdx === m; });
+      var mVentas = mData.reduce(function(acc, item) { return acc + item.ventas; }, 0);
+      var mCobrado = mData.reduce(function(acc, item) { return acc + item.cobrado; }, 0);
+      var mRec = mVentas > 0 ? (mCobrado / mVentas * 100) : 0;
+      ventasData.push(mVentas);
+      cobradoData.push(mCobrado);
+      recupData.push(Math.round(mRec * 10) / 10);
+    }
+  } else {
+    // Specific Month Selected
+    var selMonthIdx = parseInt(monthVal);
+    var monthName = MESES_NOMBRES[selMonthIdx];
+    
+    if (vendedorVal !== "all") {
+      // Specific Salesperson: 2025 vs 2026 Comparison
+      labels = [monthName + " 2025", monthName + " 2026"];
+      
+      [2025, 2026].forEach(function(yr) {
+        var r = VENDEDORES_HISTORICO.find(function(item) {
+          return item.nombre === vendedorVal && item.year === yr && item.mesIdx === selMonthIdx;
+        });
+        if (r) {
+          ventasData.push(r.ventas);
+          cobradoData.push(r.cobrado);
+          recupData.push(r.pctRecup);
+        } else {
+          ventasData.push(0);
+          cobradoData.push(0);
+          recupData.push(0);
+        }
+      });
+    } else {
+      // Todos los Vendedores: Show regions or list top salespeople
+      if (regionVal === "all") {
+        // Compare regions/zones
+        labels = VENTAS_ZONAS;
+        labels.forEach(function(zone) {
+          var rData = baseFiltered.filter(function(item) { return item.zona === zone && item.mesIdx === selMonthIdx; });
+          var rVentas = rData.reduce(function(acc, item) { return acc + item.ventas; }, 0);
+          var rCobrado = rData.reduce(function(acc, item) { return acc + item.cobrado; }, 0);
+          var rRec = rVentas > 0 ? (rCobrado / rVentas * 100) : 0;
+          ventasData.push(rVentas);
+          cobradoData.push(rCobrado);
+          recupData.push(Math.round(rRec * 10) / 10);
+        });
+      } else {
+        // Specific region: list top 8 salespeople in this region for that specific month
+        var mRecords = baseFiltered.filter(function(item) { return item.mesIdx === selMonthIdx; });
+        mRecords.sort(function(a, b) { return b.ventas - a.ventas; });
+        var top8 = mRecords.slice(0, 8);
+        
+        top8.forEach(function(item) {
+          labels.push(item.nombre.split(" ")[0]);
+          ventasData.push(item.ventas);
+          cobradoData.push(item.cobrado);
+          recupData.push(item.pctRecup);
+        });
+      }
+    }
+  }
+  
+  if (chartVentasPro) chartVentasPro.destroy();
+  
+  var drawCtx = ctx.getContext("2d");
+  var gradIndigo = drawCtx.createLinearGradient(0, 0, 0, 260);
+  gradIndigo.addColorStop(0, "rgba(99, 102, 241, 0.45)");
+  gradIndigo.addColorStop(1, "rgba(99, 102, 241, 0.02)");
+  
+  chartVentasPro = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Ventas",
+          type: "bar",
+          data: ventasData,
+          backgroundColor: "rgba(20, 184, 166, 0.75)",
+          borderColor: "rgba(20, 184, 166, 1)",
+          borderWidth: 1.5,
+          borderRadius: 6,
+          yAxisID: "y"
+        },
+        {
+          label: "Cobranza",
+          type: "line",
+          data: cobradoData,
+          borderColor: "rgba(99, 102, 241, 1)",
+          backgroundColor: gradIndigo,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: "#6366f1",
+          yAxisID: "y"
+        },
+        {
+          label: "Recuperación %",
+          type: "line",
+          data: recupData,
+          borderColor: "rgba(245, 158, 11, 1)",
+          backgroundColor: "transparent",
+          borderDash: [5, 5],
+          tension: 0.3,
+          pointRadius: 5,
+          pointBackgroundColor: "#f59e0b",
+          yAxisID: "y2"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#e2e8f0",
+            font: { size: 12, weight: "bold", family: "'Outfit', 'Inter', sans-serif" }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.datasetIndex === 2) {
+                return " Recuperación: " + ctx.raw + "%";
+              }
+              return " " + ctx.dataset.label + ": " + fmtV(ctx.raw);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#e2e8f0",
+            font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" }
+          },
+          grid: { color: "rgba(255, 255, 255, 0.05)" }
+        },
+        y: {
+          ticks: {
+            color: "#e2e8f0",
+            font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+            callback: function(v) { return fmtV(v); }
+          },
+          grid: { color: "rgba(255, 255, 255, 0.08)" }
+        },
+        y2: {
+          position: "right",
+          min: 0,
+          max: 100,
+          ticks: {
+            color: "#e2e8f0",
+            font: { size: 11, weight: "bold", family: "'Outfit', 'Inter', sans-serif" },
+            callback: function(v) { return v + "%"; }
+          },
+          grid: { display: false }
+        }
+      }
+    }
+  });
 }
 
 function exportVentasCSV() {

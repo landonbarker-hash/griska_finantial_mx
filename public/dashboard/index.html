@@ -1214,6 +1214,102 @@
                     </div>
                 </div>
 
+                <!-- ANALIZADOR MULTIDIMENSIONAL 360 -->
+                <div class="chart-card full-width" style="max-height:none; margin-bottom:24px; padding:24px; background:linear-gradient(135deg, rgba(30,41,59,0.7) 0%, rgba(15,23,42,0.8) 100%); border:1px solid rgba(255,255,255,0.08); border-radius:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:18px; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:24px;">🔄</span>
+                            <div>
+                                <h3 style="margin:0; font-size:18px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:1px;">Analizador de Ventas 360°</h3>
+                                <p style="margin:3px 0 0; font-size:12.5px; color:var(--text3);">Filtra por año, mes, región o vendedor para analizar de forma proactiva</p>
+                            </div>
+                        </div>
+                        
+                        <!-- FILTERS ROW -->
+                        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:12px; font-weight:700; color:var(--text2);">Año:</span>
+                                <select id="v-pro-year" onchange="updateVentasProChart()" style="background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; outline:none; transition: border .15s;">
+                                    <option value="2026">2026</option>
+                                    <option value="2025">2025</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:12px; font-weight:700; color:var(--text2);">Mes:</span>
+                                <select id="v-pro-month" onchange="updateVentasProChart()" style="background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; outline:none; transition: border .15s;">
+                                    <option value="all">Todos los meses (Tendencia)</option>
+                                    <option value="0">Enero</option>
+                                    <option value="1">Febrero</option>
+                                    <option value="2">Marzo</option>
+                                    <option value="3">Abril</option>
+                                    <option value="4">Mayo</option>
+                                    <option value="5">Junio</option>
+                                    <option value="6">Julio</option>
+                                    <option value="7">Agosto</option>
+                                    <option value="8">Septiembre</option>
+                                    <option value="9">Octubre</option>
+                                    <option value="10">Noviembre</option>
+                                    <option value="11">Diciembre</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:12px; font-weight:700; color:var(--text2);">Región:</span>
+                                <select id="v-pro-region" onchange="populateAnalyzerVendedores()" style="background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; outline:none; transition: border .15s;">
+                                    <option value="all">Todas las regiones</option>
+                                    <option value="Norte">Norte</option>
+                                    <option value="Centro">Centro</option>
+                                    <option value="Sur">Sur</option>
+                                    <option value="CDMX">CDMX</option>
+                                    <option value="Occidente">Occidente</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:12px; font-weight:700; color:var(--text2);">Vendedor:</span>
+                                <select id="v-pro-vendedor" onchange="updateVentasProChart()" style="background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; outline:none; transition: border .15s; min-width:180px;">
+                                    <option value="all">Todos los vendedores</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SCORECARDS GRID -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+                        <!-- KPI 1 -->
+                        <div style="background:rgba(15,23,42,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 20px; position:relative; overflow:hidden;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px;">Ventas Totales</div>
+                            <div id="v-pro-kpi-ventas" style="font-size:24px; font-weight:800; color:#14b8a6; margin-top:6px; letter-spacing:-0.5px;">$0</div>
+                            <div style="font-size:11px; color:#22c55e; font-weight:600; margin-top:4px;">↑ Acumulado Filtros</div>
+                            <div style="position:absolute; right:12px; bottom:8px; font-size:28px; opacity:0.06; pointer-events:none;">📊</div>
+                        </div>
+                        <!-- KPI 2 -->
+                        <div style="background:rgba(15,23,42,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 20px; position:relative; overflow:hidden;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px;">Cobranza Efectiva</div>
+                            <div id="v-pro-kpi-cobrado" style="font-size:24px; font-weight:800; color:#6366f1; margin-top:6px; letter-spacing:-0.5px;">$0</div>
+                            <div style="font-size:11px; color:#22c55e; font-weight:600; margin-top:4px;">↑ Recuperación Activa</div>
+                            <div style="position:absolute; right:12px; bottom:8px; font-size:28px; opacity:0.06; pointer-events:none;">💰</div>
+                        </div>
+                        <!-- KPI 3 -->
+                        <div style="background:rgba(15,23,42,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 20px; position:relative; overflow:hidden;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px;">% Recuperación</div>
+                            <div id="v-pro-kpi-recup" style="font-size:24px; font-weight:800; color:#f59e0b; margin-top:6px; letter-spacing:-0.5px;">0%</div>
+                            <div style="font-size:11px; color:#94a3b8; font-weight:600; margin-top:4px;">Eficiencia Promedio</div>
+                            <div style="position:absolute; right:12px; bottom:8px; font-size:28px; opacity:0.06; pointer-events:none;">🎯</div>
+                        </div>
+                        <!-- KPI 4 -->
+                        <div style="background:rgba(15,23,42,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 20px; position:relative; overflow:hidden;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px;">Comisiones Generadas</div>
+                            <div id="v-pro-kpi-comision" style="font-size:24px; font-weight:800; color:#a78bfa; margin-top:6px; letter-spacing:-0.5px;">$0</div>
+                            <div style="font-size:11px; color:#94a3b8; font-weight:600; margin-top:4px;">Por Cobranza Efectiva</div>
+                            <div style="position:absolute; right:12px; bottom:8px; font-size:28px; opacity:0.06; pointer-events:none;">💸</div>
+                        </div>
+                    </div>
+
+                    <!-- CHART CANVAS -->
+                    <div style="height:320px; position:relative;">
+                        <canvas id="ventasProChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- FILTROS -->
                 <div style="background:rgba(30,41,59,0.5);padding:14px 20px;border-radius:12px;margin-bottom:18px;display:flex;gap:16px;align-items:center;border:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;">
                     <span style="color:var(--text2);font-size:13px;font-weight:600;">FILTRAR:</span>
